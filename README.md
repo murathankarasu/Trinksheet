@@ -84,18 +84,6 @@ git add .
 git commit -m "Vercel deployment için hazır"
 git push origin main
 
-# 2. Vercel'de deploy edin
-# - https://vercel.com adresine gidin
-# - GitHub hesabınızla giriş yapın
-# - "New Project" seçin
-# - Repository'nizi seçin
-# - Environment Variables ekleyin:
-#   - GOOGLE_CLIENT_ID=your_client_id
-#   - GOOGLE_CLIENT_SECRET=your_client_secret
-#   - GEMINI_API_KEY=AIzaSyCl43mCHT9DGs9MiBrX7wQeAS9ZoTD5vSs
-#   - SECRET_KEY=your_secret_key
-# - "Deploy" butonuna tıklayın
-```
 
 ### Production (Heroku)
 ```bash
