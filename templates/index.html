@@ -109,8 +109,35 @@
             gap: 10px;
         }
 
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
         .auth-button:hover {
             background: #e55a2b;
+            transform: translateY(-2px);
+        }
+
+        .logout-button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logout-button:hover {
+            background: #c82333;
             transform: translateY(-2px);
         }
 
@@ -418,7 +445,12 @@
                 padding: 20px;
             }
             
-            .auth-button, .process-button {
+            .auth-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .auth-button, .process-button, .logout-button {
                 padding: 14px 28px;
                 font-size: 1rem;
             }
@@ -439,10 +471,16 @@
             <!-- Google Sheets Bağlantısı -->
             <div class="auth-section">
                 <h3><i class="fas fa-google"></i> Google Sheets Bağlantısı</h3>
-                <button id="authButton" class="auth-button">
-                    <img src="{{ url_for('static', filename='Google_Favicon_2025.svg.png') }}" alt="Google" class="google-logo">
-                    Google Sheets'e Bağlan
-                </button>
+                <div class="auth-buttons">
+                    <button id="authButton" class="auth-button">
+                        <img src="{{ url_for('static', filename='Google_Favicon_2025.svg.png') }}" alt="Google" class="google-logo">
+                        Google Sheets'e Bağlan
+                    </button>
+                    <button id="logoutButton" class="logout-button" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Çıkış Yap
+                    </button>
+                </div>
                 <div id="authStatus" class="auth-status disconnected">
                     <i class="fas fa-times-circle"></i> Bağlantı yok
                 </div>
@@ -457,7 +495,7 @@
                     <textarea 
                         id="textInput" 
                         class="text-input" 
-                        placeholder="Arsa/arazi ilanınızı buraya yapıştırın...&#10;&#10;Örnek:&#10;İstanbul Beykoz'da 500m2 arsa satılık. Yola cepheli, imarlı. Fiyat: 2.500.000 TL. İletişim: 0555 123 45 67"
+                        placeholder="Arsa/arazi ilanınızı buraya yapıştırın...&#10;&#10;Örnek:&#10;İstanbul Beykoz'da 500m2 arsa satılık. Ada: 123, Parsel: 45. Yola cepheli, imarlı. Fiyat: 2.500.000 TL. İletişim: 0555 123 45 67, Email: info@example.com, İsim: Ahmet Yılmaz"
                     ></textarea>
                 </div>
                 
@@ -583,6 +621,9 @@
         
         // Tablo oluştur
         document.getElementById('createTableButton').addEventListener('click', createTable);
+        
+        // Logout
+        document.getElementById('logoutButton').addEventListener('click', logout);
 
         function showMessage(message, type) {
             const container = document.getElementById('messageContainer');
@@ -616,6 +657,27 @@
                 }
             } catch (error) {
                 showMessage('Google Sheets açılamadı', 'error');
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('/logout');
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    // UI'yi güncelle
+                    updateAuthUI(false);
+                    // Sayfayı yenile
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showMessage('Çıkış yapılamadı', 'error');
+                }
+            } catch (error) {
+                showMessage('Çıkış yapılamadı', 'error');
             }
         }
 
@@ -659,19 +721,15 @@
                 
                 const authStatus = document.getElementById('authStatus');
                 const authButton = document.getElementById('authButton');
+                const logoutButton = document.getElementById('logoutButton');
                 const openSheetsButton = document.getElementById('openSheetsButton');
                 
                 if (data.error && data.error.includes('bağlantısı yok')) {
                     // Bağlantı yok
-                    authStatus.className = 'auth-status disconnected';
-                    authStatus.innerHTML = '<i class="fas fa-times-circle"></i> Bağlantı yok';
-                    authButton.style.display = 'inline-flex';
-                    openSheetsButton.disabled = true;
+                    updateAuthUI(false);
                 } else {
                     // Bağlantı var
-                    authStatus.className = 'auth-status connected';
-                    authStatus.innerHTML = '<i class="fas fa-check-circle"></i> Google Sheets Bağlı';
-                    authButton.style.display = 'none';
+                    updateAuthUI(true);
                     
                     // Tablo varsa "Tabloyu Aç" butonunu aktif et
                     if (data.data && data.data.length >= 0) {
@@ -680,6 +738,29 @@
                 }
             } catch (error) {
                 console.error('Bağlantı durumu kontrol edilemedi:', error);
+            }
+        }
+
+        // Auth UI'yi güncelle
+        function updateAuthUI(isConnected) {
+            const authStatus = document.getElementById('authStatus');
+            const authButton = document.getElementById('authButton');
+            const logoutButton = document.getElementById('logoutButton');
+            const openSheetsButton = document.getElementById('openSheetsButton');
+            
+            if (isConnected) {
+                // Bağlantı var
+                authStatus.className = 'auth-status connected';
+                authStatus.innerHTML = '<i class="fas fa-check-circle"></i> Google Sheets Bağlı';
+                authButton.style.display = 'none';
+                logoutButton.style.display = 'inline-flex';
+            } else {
+                // Bağlantı yok
+                authStatus.className = 'auth-status disconnected';
+                authStatus.innerHTML = '<i class="fas fa-times-circle"></i> Bağlantı yok';
+                authButton.style.display = 'inline-flex';
+                logoutButton.style.display = 'none';
+                openSheetsButton.disabled = true;
             }
         }
     </script>

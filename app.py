@@ -127,20 +127,33 @@ def format_with_gemini(text):
     
     **İL:** [İl adını yaz]
     **İLÇE:** [İlçe adını yaz]
+    **MAHALLE:** [Mahalle adını yaz - varsa]
     **M2:** [Metrekare bilgisini yaz]
+    **PARSEL NO:** [Parsel numarasını yaz - varsa]
+    **ADA NO:** [Ada numarasını yaz - varsa]
     **TAPU DURUMU:** [Tapu durumunu yaz - varsa]
     **İMAR DURUMU:** [İmar durumunu yaz - varsa]
     **YOL CEPHESİ:** [Yol cephesi bilgisini yaz - varsa]
     **AVANTAJLAR:** [Avantajları madde halinde yaz]
+    **FİYAT:** [Fiyat bilgisini yaz - varsa]
+    **İLETİŞİM:** [Telefon numarasını yaz - varsa]
+    **EMAIL:** [Email adresini yaz - varsa]
+    **İSİM:** [İsim soyisim bilgisini yaz - varsa]
     
     Kurallar:
     1. Sadece yukarıdaki başlıkları kullan
     2. Bilgi yoksa o başlığı atla
-    3. Avantajları madde halinde yaz
-    4. Gereksiz bilgileri kaldır
-    5. Sadece önemli bilgileri dahil et
-    6. Profesyonel ve düzenli format kullan
-    7. Metin uzunsa bile sadece bu başlıkları kullan
+    3. Mahalle bilgisini varsa ekle
+    4. Parsel ve ada numaralarını ayrı ayrı yaz
+    5. Avantajları madde halinde yaz
+    6. Fiyatı temiz formatta yaz (2.500.000 TL, 1.5M TL, vb.)
+    7. Telefon numarasını temiz formatta yaz (0555 123 45 67)
+    8. Email adresini küçük harflerle yaz
+    9. İsim soyisim bilgisini düzgün formatta yaz
+    10. Gereksiz bilgileri kaldır
+    11. Sadece önemli bilgileri dahil et
+    12. Profesyonel ve düzenli format kullan
+    13. Metin uzunsa bile sadece bu başlıkları kullan
     """
     
     try:
@@ -179,8 +192,14 @@ def parse_ai_response(text):
             result['İL'] = line.replace('**İL:**', '').strip()
         elif line.startswith('**İLÇE:**'):
             result['İLÇE'] = line.replace('**İLÇE:**', '').strip()
+        elif line.startswith('**MAHALLE:**'):
+            result['MAHALLE'] = line.replace('**MAHALLE:**', '').strip()
         elif line.startswith('**M2:**'):
             result['M2'] = line.replace('**M2:**', '').strip()
+        elif line.startswith('**PARSEL NO:**'):
+            result['PARSEL NO'] = line.replace('**PARSEL NO:**', '').strip()
+        elif line.startswith('**ADA NO:**'):
+            result['ADA NO'] = line.replace('**ADA NO:**', '').strip()
         elif line.startswith('**TAPU DURUMU:**'):
             result['TAPU DURUMU'] = line.replace('**TAPU DURUMU:**', '').strip()
         elif line.startswith('**İMAR DURUMU:**'):
@@ -197,6 +216,14 @@ def parse_ai_response(text):
                 elif adv_line and not adv_line.startswith('**'):
                     break
             result['AVANTAJLAR'] = '\n'.join(advantages)
+        elif line.startswith('**FİYAT:**'):
+            result['FİYAT'] = line.replace('**FİYAT:**', '').strip()
+        elif line.startswith('**İLETİŞİM:**'):
+            result['İLETİŞİM'] = line.replace('**İLETİŞİM:**', '').strip()
+        elif line.startswith('**EMAIL:**'):
+            result['EMAIL'] = line.replace('**EMAIL:**', '').strip()
+        elif line.startswith('**İSİM:**'):
+            result['İSİM'] = line.replace('**İSİM:**', '').strip()
     
     return result
 
@@ -223,7 +250,7 @@ def save_to_sheets(formatted_text, original_text):
                         'title': 'İlanlar',
                         'gridProperties': {
                             'rowCount': 1000,
-                            'columnCount': 9
+                            'columnCount': 16
                         }
                     }
                 }
@@ -235,10 +262,10 @@ def save_to_sheets(formatted_text, original_text):
         session['spreadsheet_id'] = spreadsheet_id
         
         # Başlıkları ekle
-        headers = [['Tarih', 'İl', 'İlçe', 'M2', 'Tapu Durumu', 'İmar Durumu', 'Yol Cephesi', 'Avantajlar', 'Orijinal Metin']]
+        headers = [['Tarih', 'İl', 'İlçe', 'Mahalle', 'M2', 'Parsel No', 'Ada No', 'Tapu Durumu', 'İmar Durumu', 'Yol Cephesi', 'Avantajlar', 'Fiyat', 'İletişim', 'Email', 'İsim', 'Orijinal Metin']]
         service.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
-            range='A1:I1',
+            range='A1:P1',
             valueInputOption='RAW',
             body={'values': headers}
         ).execute()
@@ -270,10 +297,10 @@ def save_to_sheets(formatted_text, original_text):
             session['spreadsheet_id'] = spreadsheet_id
             
             # Başlıkları ekle
-            headers = [['Tarih', 'İl', 'İlçe', 'M2', 'Tapu Durumu', 'İmar Durumu', 'Yol Cephesi', 'Avantajlar', 'Orijinal Metin']]
+            headers = [['Tarih', 'İl', 'İlçe', 'Mahalle', 'M2', 'Parsel No', 'Ada No', 'Tapu Durumu', 'İmar Durumu', 'Yol Cephesi', 'Avantajlar', 'Fiyat', 'İletişim', 'Email', 'İsim', 'Orijinal Metin']]
             service.spreadsheets().values().update(
                 spreadsheetId=spreadsheet_id,
-                range='A1:I1',
+                range='A1:P1',
                 valueInputOption='RAW',
                 body={'values': headers}
             ).execute()
@@ -298,17 +325,24 @@ def save_to_sheets(formatted_text, original_text):
         current_time,
         parsed_data.get('İL', ''),
         parsed_data.get('İLÇE', ''),
+        parsed_data.get('MAHALLE', ''),
         parsed_data.get('M2', ''),
+        parsed_data.get('PARSEL NO', ''),
+        parsed_data.get('ADA NO', ''),
         parsed_data.get('TAPU DURUMU', ''),
         parsed_data.get('İMAR DURUMU', ''),
         parsed_data.get('YOL CEPHESİ', ''),
         parsed_data.get('AVANTAJLAR', ''),
+        parsed_data.get('FİYAT', ''),
+        parsed_data.get('İLETİŞİM', ''),
+        parsed_data.get('EMAIL', ''),
+        parsed_data.get('İSİM', ''),
         original_text
     ]]
     
     service.spreadsheets().values().update(
         spreadsheetId=spreadsheet_id,
-        range=f'A{next_row}:I{next_row}',
+        range=f'A{next_row}:P{next_row}',
         valueInputOption='RAW',
         body={'values': values}
     ).execute()
@@ -329,7 +363,7 @@ def get_sheets_data():
         
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
-            range='A:I'
+            range='A:P'
         ).execute()
         
         values = result.get('values', [])
@@ -344,18 +378,33 @@ def get_sheets_data():
                     'date': row[0] if len(row) > 0 else '',
                     'il': row[1] if len(row) > 1 else '',
                     'ilce': row[2] if len(row) > 2 else '',
-                    'm2': row[3] if len(row) > 3 else '',
-                    'tapu_durumu': row[4] if len(row) > 4 else '',
-                    'imar_durumu': row[5] if len(row) > 5 else '',
-                    'yol_cephe': row[6] if len(row) > 6 else '',
-                    'avantajlar': row[7] if len(row) > 7 else '',
-                    'original_text': row[8] if len(row) > 8 else ''
+                    'mahalle': row[3] if len(row) > 3 else '',
+                    'm2': row[4] if len(row) > 4 else '',
+                    'parsel_no': row[5] if len(row) > 5 else '',
+                    'ada_no': row[6] if len(row) > 6 else '',
+                    'tapu_durumu': row[7] if len(row) > 7 else '',
+                    'imar_durumu': row[8] if len(row) > 8 else '',
+                    'yol_cephe': row[9] if len(row) > 9 else '',
+                    'avantajlar': row[10] if len(row) > 10 else '',
+                    'fiyat': row[11] if len(row) > 11 else '',
+                    'iletisim': row[12] if len(row) > 12 else '',
+                    'email': row[13] if len(row) > 13 else '',
+                    'isim': row[14] if len(row) > 14 else '',
+                    'original_text': row[15] if len(row) > 15 else ''
                 })
         
         return jsonify({'data': data})
         
     except Exception as e:
         return jsonify({'error': f'Veri getirme hatası: {str(e)}'}), 500
+
+@app.route('/logout')
+def logout():
+    """Kullanıcıyı logout yap"""
+    # Session'dan credentials'ları temizle
+    session.pop('credentials', None)
+    session.pop('spreadsheet_id', None)
+    return jsonify({'success': True, 'message': 'Başarıyla çıkış yapıldı'})
 
 @app.route('/get_sheets_url')
 def get_sheets_url():
@@ -395,7 +444,7 @@ def create_table():
                         'title': 'İlanlar',
                         'gridProperties': {
                             'rowCount': 1000,
-                            'columnCount': 9
+                            'columnCount': 16
                         }
                     }
                 }
@@ -407,10 +456,10 @@ def create_table():
         session['spreadsheet_id'] = spreadsheet_id
         
         # Başlıkları ekle
-        headers = [['Tarih', 'İl', 'İlçe', 'M2', 'Tapu Durumu', 'İmar Durumu', 'Yol Cephesi', 'Avantajlar', 'Orijinal Metin']]
+        headers = [['Tarih', 'İl', 'İlçe', 'Mahalle', 'M2', 'Parsel No', 'Ada No', 'Tapu Durumu', 'İmar Durumu', 'Yol Cephesi', 'Avantajlar', 'Fiyat', 'İletişim', 'Email', 'İsim', 'Orijinal Metin']]
         service.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
-            range='A1:I1',
+            range='A1:P1',
             valueInputOption='RAW',
             body={'values': headers}
         ).execute()
