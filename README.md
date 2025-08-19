@@ -1,5 +1,4 @@
-
-# Text2Sheets – AI-Powered Data Organizer
+# Trinksheet – AI-Powered Data Organizer
 
 Automatically organizes text input into structured data and stores it in **Google Sheets** format.
 
